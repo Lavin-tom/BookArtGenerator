@@ -352,69 +352,97 @@ function createrawpattern(currentimage) {
   return bandslist;
 }
 
-function checkrawpattern(bandslist) {
-  const columns = Object.values(bandslist);
-  let found = false;
-  let gapDetected = false;
+function checkrawpattern(bandslist){
+    // Checks the raw pattern dictionary for vertical gaps
+    var errormsg = "";
+    var foundcolumns = false;
+    var bandslistlength = getlength(bandslist);
 
-  for (let i = 0; i < columns.length; i++) {
-    const col = columns[i];
-    if (col.length > 5)
-      return print_error("Too much detail! Reduce image complexity.", 'errorbox'), false;
+    for (var x = 0; x < bandslistlength; x++) {
+        var columnBands = bandslist[x];
 
-    if (col.length > 0) {
-      if (gapDetected) {
-        return print_error("Vertical gaps detected in your image!", 'errorbox'), false;
-      }
-      found = true;
-    } else if (found) {
-      gapDetected = true;
+        // Skip completely empty columns before the first black column
+        if (!foundcolumns && columnBands.length === 0) continue;
+
+        // Mark first column with black bands
+        if (!foundcolumns && columnBands.length > 0) {
+            foundcolumns = true;
+            continue;
+        }
+
+        // Warn if there are too many bands in a column (retain original logic)
+        if (columnBands.length > 5) {
+            errormsg = "Your picture has too much detail! Reduce details to avoid more than 5 folds per page.";
+            break;
+        }
+
+        // Allow vertical gaps; just continue
+        // We no longer throw errors if bands appear after a gap
     }
-  }
 
-  if (!found) {
-    return print_error("Your image seems to be blank or too light!", 'errorbox'), false;
-  }
+    // Check if the entire image is blank
+    if (!foundcolumns) {
+        errormsg += "Oops - your picture is all white or has too little contrast!";
+    }
 
-  return true;
+    if (errormsg) {
+        print_error(errormsg, 'errorbox');
+        return false;
+    }
+    return true;
 }
 
-function smootherawpattern(bandslist, smoothingValue) {
-  const smoothed = {};
-  let warning = false;
+function smootherawpattern(bandslist, smoothing_value) {
+    var smoothed = {};
+    var bandslistlength = getlength(bandslist);
 
-  for (const [x, bands] of Object.entries(bandslist)) {
-    const newList = [];
-    let start, end;
+    for (var x = 0; x < bandslistlength; x++) {
+        var column = bandslist[x];
+        var new_list = [];
 
-    for (let i = 0; i < bands.length; i++) {
-      const [curStart, curEnd] = bands[i];
-      if (i < bands.length - 1) {
-        const [nextStart] = bands[i + 1];
-        if (nextStart - curEnd < smoothingValue) {
-          end = bands[i + 1][1];
-          warning = true;
-          i++; // skip next
+        if (column.length === 0) {
+            // Optional: interpolate over small gaps
+            // Find previous and next non-empty columns
+            var prev = x - 1;
+            while (prev >= 0 && bandslist[prev].length === 0) prev--;
+            var next = x + 1;
+            while (next < bandslistlength && bandslist[next].length === 0) next++;
+
+            if (prev >= 0 && next < bandslistlength) {
+                // Linear interpolation between previous and next
+                var top = Math.round((bandslist[prev][0][0] + bandslist[next][0][0]) / 2);
+                var bottom = Math.round((bandslist[prev][0][1] + bandslist[next][0][1]) / 2);
+                new_list.push([top, bottom]);
+            }
+        } else if (column.length > 1) {
+            // Original smoothing logic for multiple bands
+            var merged = false;
+            for (var i = 0; i < column.length - 1; i++) {
+                var start = merged ? start : column[i][0];
+                var end = column[i][1];
+                var nextStart = column[i + 1][0];
+
+                if (nextStart - end < smoothing_value) {
+                    end = column[i + 1][1];
+                    merged = true;
+                } else {
+                    new_list.push([start, end]);
+                    merged = false;
+                }
+
+                if (i === column.length - 2) {
+                    new_list.push(merged ? [start, end] : column[i + 1].slice());
+                }
+            }
         } else {
-          end = curEnd;
+            // Single band or empty column
+            new_list = column.slice();
         }
-      } else {
-        end = curEnd;
-      }
-      newList.push([start ?? curStart, end]);
-      start = null;
+
+        smoothed[x] = new_list.slice();
     }
 
-    smoothed[x] = newList;
-  }
-
-  if (warning && smoothingValue > 0) {
-    print_error(
-      "Some folds were merged due to smoothing; review your pattern for correctness.",
-      'errorbox'
-    );
-  }
-  return smoothed;
+    return smoothed;
 }
 
 function createalternatingpattern(bandslist){
