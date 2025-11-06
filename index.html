@@ -44,14 +44,14 @@
       <legend>Step 2: Upload Image</legend>
       <label for="userimage">Upload your image:</label>
       <input type="file" id="userimage" name="userimage" required>
-      <canvas id="selected-image" width="150" height="150"></canvas>
+      <canvas id="selected_image" width="150" height="150"></canvas>
       <div id="img-error" class="error"></div>
     </fieldset>
 
     <!-- Step 3: Generate Pattern -->
     <fieldset>
       <legend>Step 3: Generate Pattern</legend>
-      <button id="generate-btn" type="submit">Create Template!</button>
+      <button id="startbutton" type="submit">Create Template!</button>
       <div id="error-box" class="error"></div>
     </fieldset>
 
@@ -60,19 +60,19 @@
   <!-- Result -->
   <section id="result">
     <h2>Preview</h2>
-    <canvas id="pattern-canvas"></canvas>
-    <a id="download-preview" class="button" download="BookArtPreview.png">Download PNG</a>
+    <canvas id="patternimage"></canvas>
+    <a id="imagedlbutton" class="button" download="BookArtPreview.png">Download PNG</a>
 
     <h2>Pattern Text</h2>
     <textarea id="pattern-text" readonly></textarea>
-    <a id="download-pattern" class="button" download="BookartPattern.txt">Download Pattern</a>
+    <a id="textdlbutton" class="button" download="BookartPattern.txt">Download Pattern</a>
   </section>
 
 
   <script>
     // Update smoothing output
     const smootheSlider = document.getElementById('smoothe');
-    const smootheOutput = document.getElementById('smoothe-output');
+    const smootheOutput = document.getElementById('smootheoutput');
     smootheSlider.addEventListener('input', () => {
       smootheOutput.value = smootheSlider.value;
     });
