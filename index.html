@@ -11,7 +11,7 @@
 
   <h1>Bookart Generator</h1>
 
-  <form id="bookart-form" onsubmit="return false;">
+  <form id="bookartform" onsubmit="return false;">
 
     <!-- Step 1: Book Data -->
     <fieldset>
@@ -36,7 +36,7 @@
 
       <label for="smoothe">Smoothing:</label>
       <input type="range" id="smoothe" name="smoothe" min="0" max="20" step="1" value="0">
-      <output id="smoothe-output">0</output>
+      <output id="smootheoutput">0</output>
     </fieldset>
 
     <!-- Step 2: Image Upload -->
@@ -45,14 +45,14 @@
       <label for="userimage">Upload your image:</label>
       <input type="file" id="userimage" name="userimage" required>
       <canvas id="selected_image" width="150" height="150"></canvas>
-      <div id="img-error" class="error"></div>
+      <div id="img_errorbox" class="error"></div>
     </fieldset>
 
     <!-- Step 3: Generate Pattern -->
     <fieldset>
       <legend>Step 3: Generate Pattern</legend>
       <button id="startbutton" type="submit">Create Template!</button>
-      <div id="error-box" class="error"></div>
+      <div id="errorbox" class="error"></div>
     </fieldset>
 
   </form>
@@ -64,19 +64,9 @@
     <a id="imagedlbutton" class="button" download="BookArtPreview.png">Download PNG</a>
 
     <h2>Pattern Text</h2>
-    <textarea id="pattern-text" readonly></textarea>
+    <textarea id="patterntext" readonly></textarea>
     <a id="textdlbutton" class="button" download="BookartPattern.txt">Download Pattern</a>
   </section>
-
-
-  <script>
-    // Update smoothing output
-    const smootheSlider = document.getElementById('smoothe');
-    const smootheOutput = document.getElementById('smootheoutput');
-    smootheSlider.addEventListener('input', () => {
-      smootheOutput.value = smootheSlider.value;
-    });
-  </script>
   <script src="bookart.js"></script>
 </body>
 </html>
