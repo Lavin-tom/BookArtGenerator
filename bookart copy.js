@@ -255,20 +255,32 @@ function checkEntry(element) {
 }
 
 function processEntries(event) {
-    if (event) event.preventDefault();
-    deactivate_startbutton();
+        if (event){
+            event.preventDefault();
+        }
+        deactivate_startbutton();
 
-    // check inputs
-    for (let el of input_ids.map(id => document.getElementById(id))) {
-        if (!checkEntry(el)) return activate_startbutton();
-    }
+        var entries_valid = true;
 
-    if (!userimage) return activate_startbutton();
+        // check all entries (won't cause problems for additional values that have been added on the way)
+        for (var i = 0; i < input_ids.length; i++) {
+            if (checkEntry(document.getElementById(input_ids[i])) == false) {
+                entries_valid = false;
+            }
+        }
 
-    entries.userimage = userimage;
-    entries.numsheets = Math.floor((entries.lastpage - entries.firstpage) / 2);
-    processImage();
-    activate_startbutton();
+        // check if image has been loaded
+        entries.userimage = userimage;
+        if (!entries.userimage){
+            entries_valid = false;
+        }
+
+        if (entries_valid == true) {
+            if (event && event.target.id == 'startbutton') {
+                processImage();
+            }
+            activate_startbutton();
+        }
 }
 
 function processImage() {
@@ -298,123 +310,247 @@ function create_patterndata(){
 }
 
 function image_to_bw(){
+    // Get the CanvasPixelArray from the given coordinates and dimensions.
     var currentimage = ctx.getImageData(0, 0, canvas.width, canvas.height);
     var pix = currentimage.data;
 
-    const threshold = 128;
+    var red, green, blue, brightness, threshold;
 
-    for (let i = 0, n = pix.length; i < n; i += 4) {
-        let r = pix[i], g = pix[i+1], b = pix[i+2], a = pix[i+3];
+    // Loop over each pixel and turn to black or white.
+    for (var i = 0, n = pix.length; i < n; i += 4) {
+        red = pix[i];
+        green = pix[i+1];
+        blue = pix [i+2];
+        alpha = pix [i+3];
 
-        // Blend with white if partially transparent
-        if (a !== 255 && a !== 0) {
-            const alphaFactor = a / 255;
-            const whiteFraction = 255 * (1 - alphaFactor);
-            r = r * alphaFactor + whiteFraction;
-            g = g * alphaFactor + whiteFraction;
-            b = b * alphaFactor + whiteFraction;
+        if (alpha != 0){
+            if (alpha != 255){
+                // replace background with white, according to opacity
+                var alphafactor = alpha/255;
+                var whitefraction = (1-alphafactor) * 255;
+                red = alphafactor * red + whitefraction;
+                green = alphafactor * green + whitefraction;
+                blue = alphafactor * blue + whitefraction;
+            }
+            brightness = (red*299 + green*587 + blue*114)/1000; // see http://www.w3.org/TR/AERT#color-contrast
+        }
+        else {
+            // this pixel is fully transparent, thus 'white'
+            brightness = 255
         }
 
-        // Fully transparent pixels -> white
-        const brightness = (a === 0) ? 255 : (r*0.299 + g*0.587 + b*0.114);
+        threshold = 128;
 
-        // Convert to black or white
-        const bw = (brightness >= threshold) ? 255 : 0;
-        pix[i] = pix[i+1] = pix[i+2] = bw;
-        pix[i+3] = 255; // fully opaque
-    }
-
-    return currentimage;
-}
-
-function createrawpattern(currentimage) {
-  const { width, height, data } = currentimage;
-  const bandslist = Array(width).fill().map(() => []);
-
-  for (let x = 0; x < width; x++) {
-    let start = null;
-    for (let y = 0; y < height; y++) {
-      const i = (x + y * width) * 4;
-      const pixel = data[i]; // red channel only
-      const nextPixel = y < height - 1 ? data[(x + (y + 1) * width) * 4] : 255;
-
-      // detect black start
-      if (pixel === 0 && (y === 0 || data[(x + (y - 1) * width) * 4] !== 0)) {
-        start = y;
-      }
-      // detect black end
-      if (pixel === 0 && nextPixel !== 0 && start !== null) {
-        bandslist[x].push([start, y + 1]);
-        start = null;
-      }
-    }
-  }
-  return bandslist;
-}
-
-function checkrawpattern(bandslist) {
-  const columns = Object.values(bandslist);
-  let found = false;
-  let gapDetected = false;
-
-  for (let i = 0; i < columns.length; i++) {
-    const col = columns[i];
-    if (col.length > 5)
-      return print_error("Too much detail! Reduce image complexity.", 'errorbox'), false;
-
-    if (col.length > 0) {
-      if (gapDetected) {
-        return print_error("Vertical gaps detected in your image!", 'errorbox'), false;
-      }
-      found = true;
-    } else if (found) {
-      gapDetected = true;
-    }
-  }
-
-  if (!found) {
-    return print_error("Your image seems to be blank or too light!", 'errorbox'), false;
-  }
-
-  return true;
-}
-
-function smootherawpattern(bandslist, smoothingValue) {
-  const smoothed = {};
-  let warning = false;
-
-  for (const [x, bands] of Object.entries(bandslist)) {
-    const newList = [];
-    let start, end;
-
-    for (let i = 0; i < bands.length; i++) {
-      const [curStart, curEnd] = bands[i];
-      if (i < bands.length - 1) {
-        const [nextStart] = bands[i + 1];
-        if (nextStart - curEnd < smoothingValue) {
-          end = bands[i + 1][1];
-          warning = true;
-          i++; // skip next
-        } else {
-          end = curEnd;
+        if (brightness >= threshold){
+            pix[i] = 255;
+            pix[i+1] = 255;
+            pix[i+2] = 255;
         }
-      } else {
-        end = curEnd;
-      }
-      newList.push([start ?? curStart, end]);
-      start = null;
+        else {
+            pix[i] = 0;
+            pix[i+1] = 0;
+            pix[i+2] = 0;
+        }
+        pix[i+3] = 255;
+    }
+    return currentimage
+}
+
+function createrawpattern(currentimage){
+
+    function iswhite(pixel){
+        if (pixel === 255){
+            return true;
+        }
+        return false;
     }
 
-    smoothed[x] = newList;
-  }
+    function isblack(pixel){
+        if (pixel === 0){
+            return true;
+        }
+        return false;
+    }
 
-  if (warning && smoothingValue > 0) {
-    print_error(
-      "Some folds were merged due to smoothing; review your pattern for correctness.",
-      'errorbox'
-    );
-  }
-  return smoothed;
+    var imagewidth = currentimage.width;
+    var imageheight = currentimage.height;
+
+    //create a workable representation of the imagedata
+    var imagerepr = new Object();
+
+    for (var x=0, n=imagewidth; x<n; x+=1){ //for each column
+        imagerepr[x] = [];
+        for (var y=0, m=imageheight; y < m; y+=1) { //for each pixel in a column (pixels consist of four values)
+            imagerepr[x][y] = currentimage.data[(x + y * imagewidth) * 4];
+        }
+    }
+
+    //create a list of bands of black for each column
+    var bandslist = new Object();
+    var x, y, colorabove, currentcolor, start, end;
+
+    //for each column
+    for (x=0, n=imagewidth; x<n; x+=1){
+        y = 0;
+        colorabove = null;
+        bandslist[x] = new Array();
+        //run through all pixels in a column
+        while (y < imageheight) {
+            currentcolor = imagerepr[x][y];
+            while (isblack(currentcolor) && y < imageheight) {
+                //if a dark region begins, or if the column is dark at the top, set a start marker
+                if (iswhite(colorabove) || colorabove === null) {
+                    start = y;
+                }
+                //if we reached the end of the column, set an end marker
+                if (y == imageheight-1) {
+                    end = y+1; //add 1 to comprise full dark area
+                    bandslist[x].push([start, end]);
+                }
+
+                // increment and prepare for next iteration
+                y += 1;
+                colorabove = currentcolor;
+                if (y < imageheight) {
+                    currentcolor = imagerepr[x][y];
+                }
+            }
+
+            while (iswhite(currentcolor) && y < imageheight) {
+                // at the border from black to white, set an end marker
+                if (isblack(colorabove)) {
+                    end = y-1 //subtract 1 to comprise full dark area
+                    bandslist[x].push([start, end]);
+                }
+                // increment and prepare for next iteration
+                y += 1;
+                colorabove = currentcolor;
+                if (y < imageheight) {
+                    currentcolor = imagerepr[x][y];
+                }
+            }
+        }
+    }
+    return bandslist;
+}
+
+function checkrawpattern(bandslist){
+//Checks the raw pattern dictionary for vertical gaps
+    var errormsg = "";
+    var x = 0;
+    var foundcolumns = false;
+    var foundinterruption = false;
+    var warningissued = false;
+    var bandslistlength = getlength(bandslist);
+    // there is no value in the pattern dictionary if the line is all white. White areas at both sides are allowed.
+    while (x < bandslistlength) {
+        // check for too many bands per column
+        if (bandslist[x].length > 5) {
+            foundcolumns = true;
+            errormsg = "Your picture has an awful lot of detail! This results in more than 5 alternating folds in some area(s). Please reduce the details in your picture and call this program again.";
+            break;
+        }
+
+        // whitespace in front
+        if (!foundcolumns && bandslist[x].length == 0) {
+            x += 1;
+            continue;
+        }
+        // first black column
+        if (!foundcolumns && bandslist[x].length != 0) {
+            foundcolumns = true;
+            x += 1;
+            continue;
+        }
+        // following black columns
+        if (foundcolumns && bandslist[x].length != 0 && !foundinterruption){
+            x += 1;
+            continue;
+        }
+        // first white interruption - end of image or real gap
+        if (foundcolumns && bandslist[x].length == 0 && !foundinterruption){
+            foundinterruption = true;
+            x +=1;
+            continue;
+        }
+        // following whitespace
+        if (foundcolumns && bandslist[x].length == 0 && foundinterruption){
+            x += 1;
+            continue;
+        }
+        // black after an interruption: oh-oh!
+        if (foundcolumns && bandslist[x].length != 0 && foundinterruption){
+            errormsg = "Sorry, but your picture has vertical gaps (like space between letters, for example: <a href=\"/posts/2018/May/prepare_bookart_text.html\">learn how to get rid of it here</a>) in it, this won't look good!\nPlease use a different picture!";
+            break;
+        }
+    }
+    if (foundcolumns == false) {
+        errormsg += "Ooops - you gave me a picture which is only white (or has too little contrast)!"
+    }
+
+    if (errormsg) {
+        print_error(errormsg, 'errorbox');
+        return false;
+    }
+    return true;
+}
+
+function smootherawpattern(bandslist, smoothing_value) {
+      var smoothed = new Object;
+      var merged, start, end, nextstart, warningmsg, band;
+      var new_list = [];
+      var bandslistlength = getlength(bandslist);
+
+      for (x=0, n=bandslistlength; x<n; x+=1){
+          // reset for new column
+          new_list = [];
+          merged = false;
+          // only try smoothing if there is more than one band
+          if (bandslist[x].length > 1){
+              for (band=0; band<(bandslist[x].length-1); band+=1) {;
+                  // set a new start point only if the areas have not been connected
+                  if (!merged) {
+                      start = bandslist[x][band][0];
+                  }
+                  end = bandslist[x][band][1];
+                  nextstart = bandslist[x][band+1][0];
+                  // check if start of next band and end of current band are very close
+                  if (nextstart - end < smoothing_value) {
+                      // if so, make them one single band
+                      end = bandslist[x][band+1][1];
+                      merged = true;
+                      if (smoothing_value > 0) {
+                          warningmsg = "Smoothed one or more folds, because the distance between one dark area and the dark area below it was shorter than the selected smoothing value. Please check the pattern thoroughly for correctness. If it looks wrong, try to use a better picture, or try to enter different values for page numbers. If the tiny gaps are intentional, then don't use smoothing.)";
+                      }
+                  }
+                  // else add the band to the list
+                  else {
+                      new_list.push([start, end]);
+                      merged = false;
+                  }
+                  // if we're at the next-to-last band, and just pushed this to the array,
+                  // don't forget to handle the last band
+                  if (band == (bandslist[x].length-2)) {
+                      if (merged == false) {
+                          new_list.push([bandslist[x][band+1][0], bandslist[x][band+1][1]]);
+                      }
+                      else {
+                          new_list.push([start, end]);
+                      }
+                  }
+              }
+          }
+          else {
+              // just copy
+              new_list = bandslist[x].slice();
+          }
+          smoothed[x] = new_list.slice();
+      }
+      // just a warning, program can continue
+      if (warningmsg) {
+          print_error(warningmsg, 'errorbox');
+      }
+      return smoothed;
 }
 
 function createalternatingpattern(bandslist){
@@ -432,7 +568,7 @@ function createalternatingpattern(bandslist){
             altpattern[x] = column[0].slice();
         }
         else {
-            altpattern[x] = column[(x % num_bands)];
+            altpattern[x] = column[x % num_bands].slice();
         }
     }
     return altpattern;
@@ -500,39 +636,56 @@ function createpatterntext(patterndata){
 }
 
 function drawPreview(patterndata, height) {
-  const spacing = 6;
-  const padding = 18;
-  canvas.width = patterndata.length * spacing + 2 * padding;
-  canvas.height = height + 50;
+    // add additional space for first page number
+    var half_number_width = 18
+    canvas.width = patterndata.length * 6 + 2*half_number_width;
+    canvas.height = height + 50;
 
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.lineWidth = 2;
-  ctx.font = "18px Arial";
-  ctx.textAlign = "center";
+    // clear background
+    ctx.fillStyle = "white";
+    ctx.fillRect(0,0,canvas.width, canvas.height);
 
-  patterndata.forEach((band, i) => {
-    const x = i * spacing + padding;
-    ctx.strokeStyle = ((i + entries.firstpage / 2) % 10 === 0) ? 'Thistle' : 'gainsboro';
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
-    ctx.stroke();
+    // set line width and font style
+    ctx.lineWidth = 2;
+    ctx.fillStyle = "black";
+    ctx.font = "18px Arial";
+    ctx.textAlign = "center";
 
-    // pattern line
-    ctx.strokeStyle = ((i + entries.firstpage / 2) % 10 === 0) ? 'PaleVioletRed' : 'dimgray';
-    ctx.beginPath();
-    ctx.moveTo(x, band[0]);
-    ctx.lineTo(x, band[1]);
-    ctx.stroke();
+    // draw all book pages
+    for (var x=0; x<patterndata.length; x++) {
+        if ((x + entries.firstpage/2) % 10 == 0) {
+            ctx.strokeStyle = 'Thistle';
+        } else {
+            ctx.strokeStyle = 'gainsboro';
+        }
 
-    const page = i * 2 + entries.firstpage;
-    if (page % 20 === 0)
-      ctx.fillText(page, x, canvas.height - 30);
-  });
+        ctx.beginPath();
+        ctx.moveTo(x*6 + half_number_width, 0);
+        ctx.lineTo(x*6 + half_number_width, height);
+        ctx.stroke();
+    }
 
-  ctx.fillText(`Print this picture with a height of ${(canvas.height / 100).toFixed(2)} ${entries.unit}.`,
-               canvas.width / 2, canvas.height - 5);
+    // draw pattern
+    for (var x=0; x<patterndata.length; x++) {
+        if ((x + entries.firstpage/2) % 10 == 0) {
+            ctx.strokeStyle = 'PaleVioletRed';
+        } else {
+            ctx.strokeStyle = 'dimgray';
+        }
+        ctx.beginPath();
+        ctx.moveTo(x*6 + half_number_width, patterndata[x][0] );
+        ctx.lineTo(x*6 + half_number_width, patterndata[x][1]);
+        ctx.stroke();
+    }
+
+    // draw page numbers
+    for (var x=0; x<patterndata.length; x++) {
+        var pagenum = x*2 + entries.firstpage;
+        if (pagenum % 20 == 0) {
+            ctx.fillText(pagenum, x*6 + half_number_width, canvas.height - 30);
+        }
+    }
+    ctx.fillText("Print this picture with a height of " + canvas.height/100 + " " + entries.unit + ".", canvas.width/2, canvas.height-5);
 }
 
 //HELPER FUNCTIONS
