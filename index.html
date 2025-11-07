@@ -1,72 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bookart Generator</title>
-  <link rel="stylesheet" href="main.css">
-  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link rel="stylesheet" href="main.css" />
+  <link rel="icon" href="assets/favicon.png" type="image/png" />
 </head>
 <body>
+  <header class="header">
+    <h1>📚 Bookart Generator</h1>
+    <p class="subtitle">Turn your favorite images into folded book art patterns.</p>
+  </header>
 
-  <h1>Bookart Generator</h1>
+  <main class="container">
+    <form id="bookartform" onsubmit="return false;">
+      
+      <!-- Step 1: Book Data -->
+      <section class="form-section">
+        <h2>Step 1: Enter Book Data</h2>
+        <div class="form-grid">
+          <label for="projectname">Project Name</label>
+          <input type="text" id="projectname" name="projectname" placeholder="My Book Art Project" required />
 
-  <form id="bookartform" onsubmit="return false;">
+          <label for="firstpage">First Even Page Number</label>
+          <input type="number" id="firstpage" name="firstpage" min="-50" max="1500" step="2" value="2" required />
 
-    <!-- Step 1: Book Data -->
-    <fieldset>
-      <legend>Step 1: Enter Book Data</legend>
-      <label for="projectname">Project Name:</label>
-      <input type="text" id="projectname" name="projectname" placeholder="My Book Art Project" required>
+          <label for="lastpage">Last Even Page Number</label>
+          <input type="number" id="lastpage" name="lastpage" min="2" max="2000" step="2" value="300" required />
 
-      <label for="firstpage">First even page number:</label>
-      <input type="number" id="firstpage" name="firstpage" min="-50" max="1500" step="2" value="2" required>
+          <label>Unit</label>
+          <div class="radio-group">
+            <label><input type="radio" name="unit" value="cm" checked /> cm</label>
+            <label><input type="radio" name="unit" value="inch" /> inch</label>
+          </div>
 
-      <label for="lastpage">Last even page number:</label>
-      <input type="number" id="lastpage" name="lastpage" min="2" max="2000" step="2" value="300" required>
+          <label for="bookheight">Page Height</label>
+          <input type="number" id="bookheight" name="bookheight" min="1" max="40" step="0.1" value="15.0" required />
 
-      <label>Unit:</label>
-      <label><input type="radio" id="cm" name="unit" value="cm" checked> cm</label>
-      <label><input type="radio" id="inch" name="unit" value="inch"> inch</label>
+          <label>
+            <input type="checkbox" id="singleprecision" name="singleprecision" /> Single Precision (1 decimal place)
+          </label>
 
-      <label for="bookheight">Page Height:</label>
-      <input type="number" id="bookheight" name="bookheight" min="1" max="40" value="15.0" step="0.1" required>
+          <label for="smoothe">Smoothing</label>
+          <div class="range-group">
+            <input type="range" id="smoothe" name="smoothe" min="0" max="20" step="1" value="0" />
+            <output id="smootheoutput">0</output>
+          </div>
+        </div>
+      </section>
 
-      <label><input type="checkbox" id="singleprecision" name="singleprecision"> Single Precision (1 decimal place)</label>
+      <!-- Step 2: Image Upload -->
+      <section class="form-section">
+        <h2>Step 2: Upload Image</h2>
+        <label for="userimage" class="file-upload">
+          <span>📁 Choose an image</span>
+          <input type="file" id="userimage" name="userimage" accept="image/*" required />
+        </label>
+        <canvas id="selected_image" width="200" height="200"></canvas>
+        <div id="img_errorbox" class="error"></div>
+      </section>
 
-      <label for="smoothe">Smoothing:</label>
-      <input type="range" id="smoothe" name="smoothe" min="0" max="20" step="1" value="0">
-      <output id="smootheoutput">0</output>
-    </fieldset>
+      <!-- Step 3: Generate Pattern -->
+      <section class="form-section center">
+        <h2>Step 3: Generate Pattern</h2>
+        <button id="startbutton" class="primary-btn" type="submit">✨ Create Template!</button>
+        <div id="errorbox" class="error"></div>
+      </section>
+    </form>
 
-    <!-- Step 2: Image Upload -->
-    <fieldset>
-      <legend>Step 2: Upload Image</legend>
-      <label for="userimage">Upload your image:</label>
-      <input type="file" id="userimage" name="userimage" required>
-      <canvas id="selected_image" width="150" height="150"></canvas>
-      <div id="img_errorbox" class="error"></div>
-    </fieldset>
+    <!-- Results -->
+    <section id="result" class="result-section">
+      <h2>Preview</h2>
+      <canvas id="patternimage"></canvas>
+      <a id="imagedlbutton" class="secondary-btn" download="BookArtPreview.png">⬇️ Download PNG</a>
 
-    <!-- Step 3: Generate Pattern -->
-    <fieldset>
-      <legend>Step 3: Generate Pattern</legend>
-      <button id="startbutton" type="submit">Create Template!</button>
-      <div id="errorbox" class="error"></div>
-    </fieldset>
+      <h2>Pattern Text</h2>
+      <textarea id="patterntext" readonly></textarea>
+      <a id="textdlbutton" class="secondary-btn" download="BookartPattern.txt">⬇️ Download Pattern</a>
+    </section>
+  </main>
 
-  </form>
+  <footer class="footer">
+    <p>Made with ❤️ for book artists. | © 2025 Bookart Generator</p>
+  </footer>
 
-  <!-- Result -->
-  <section id="result">
-    <h2>Preview</h2>
-    <canvas id="patternimage"></canvas>
-    <a id="imagedlbutton" class="button" download="BookArtPreview.png">Download PNG</a>
-
-    <h2>Pattern Text</h2>
-    <textarea id="patterntext" readonly></textarea>
-    <a id="textdlbutton" class="button" download="BookartPattern.txt">Download Pattern</a>
-  </section>
   <script src="bookart.js"></script>
 </body>
 </html>
