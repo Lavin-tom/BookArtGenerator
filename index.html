@@ -6,19 +6,23 @@
   <title>Bookart Generator</title>
   <link rel="stylesheet" href="main.css" />
   <link rel="icon" href="assets/favicon.png" type="image/png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <header class="header">
+  <header class="header center">
     <h1>📚 Bookart Generator</h1>
     <p class="subtitle">Turn your favorite images into folded book art patterns.</p>
   </header>
 
   <main class="container">
+    <div class="tabs">
+      <button class="tab-button active" onclick="showTab('bookdata')">Book Data</button>
+      <button class="tab-button" onclick="showTab('upload')">Upload Image</button>
+      <button class="tab-button" onclick="showTab('generate')">Generate</button>
+    </div>
+
     <form id="bookartform" onsubmit="return false;">
-      
-      <!-- Step 1: Book Data -->
-      <section class="form-section">
-        <h2>Step 1: Enter Book Data</h2>
+      <div id="bookdata" class="tab-content active form-section">
         <div class="form-grid">
           <label for="projectname">Project Name</label>
           <input type="text" id="projectname" name="projectname" placeholder="My Book Art Project" required />
@@ -30,7 +34,7 @@
           <input type="number" id="lastpage" name="lastpage" min="2" max="2000" step="2" value="300" required />
 
           <label>Unit</label>
-          <div class="radio-group">
+          <div>
             <label><input type="radio" name="unit" id="cm" value="cm" checked /> cm</label>
             <label><input type="radio" name="unit" id="inch" value="inch" /> inch</label>
           </div>
@@ -39,7 +43,7 @@
           <input type="number" id="bookheight" name="bookheight" min="1" max="40" step="0.1" value="15.0" required />
 
           <label>
-            <input type="checkbox" id="singleprecision" name="singleprecision" /> Single Precision (1 decimal place)
+            <input type="checkbox" id="singleprecision" name="singleprecision" /> Single Precision
           </label>
 
           <label for="smoothe">Smoothing</label>
@@ -48,36 +52,33 @@
             <output id="smootheoutput">0</output>
           </div>
         </div>
-      </section>
+      </div>
 
-      <!-- Step 2: Image Upload -->
-      <section class="form-section">
-        <h2>Step 2: Upload Image</h2>
+      <div id="upload" class="tab-content form-section">
         <label for="userimage" class="file-upload">
           <span>📁 Choose an image</span>
           <input type="file" id="userimage" name="userimage" accept="image/*" required />
         </label>
         <canvas id="selected_image" width="200" height="200"></canvas>
         <div id="img_errorbox" class="error"></div>
-      </section>
+      </div>
 
-      <!-- Step 3: Generate Pattern -->
-      <section class="form-section center">
-        <h2>Step 3: Generate Pattern</h2>
+      <div id="generate" class="tab-content form-section center">
         <button id="startbutton" class="primary-btn" type="submit">✨ Create Template!</button>
         <div id="errorbox" class="error"></div>
-      </section>
+      </div>
     </form>
 
-    <!-- Results -->
     <section id="result" class="result-section">
-      <h2>Preview</h2>
-      <canvas id="patternimage"></canvas>
-      <a id="imagedlbutton" class="secondary-btn" download="BookArtPreview.png">⬇️ Download PNG</a>
+      <details>
+        <summary><strong>📄 View Results</strong></summary>
+        <canvas id="patternimage"></canvas>
+        <a id="imagedlbutton" class="secondary-btn" download="BookArtPreview.png">⬇️ Download PNG</a>
 
-      <h2>Pattern Text</h2>
-      <textarea id="patterntext" readonly></textarea>
-      <a id="textdlbutton" class="secondary-btn" download="BookartPattern.txt">⬇️ Download Pattern</a>
+        <h3>Pattern Text</h3>
+        <textarea id="patterntext" readonly></textarea>
+        <a id="textdlbutton" class="secondary-btn" download="BookartPattern.txt">⬇️ Download Pattern</a>
+      </details>
     </section>
   </main>
 
@@ -85,6 +86,14 @@
     <p>Made with ❤️ for book artists. | © 2025 lavin</p>
   </footer>
 
+  <script>
+    function showTab(tabId) {
+      document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelector(`[onclick="showTab('${tabId}')"]`).classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+  </script>
   <script src="bookart.js"></script>
 </body>
 </html>
